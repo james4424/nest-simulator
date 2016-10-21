@@ -237,6 +237,8 @@ nest::iaf_cond_alpha_mc_kinetics_dynamics( double,
       f[ S::idx( n, S::M_CA ) ] = 0.0;
       f[ S::idx( n, S::H_CA ) ] = 0.0;
     }
+
+    f[ S::idx( n, S::G_L ) ] = 0.0;
   }
 
   return GSL_SUCCESS;
@@ -261,7 +263,7 @@ nest::iaf_cond_alpha_mc_kinetics::Parameters_::Parameters_()
   , slope_h( -0.5 )  // mV-1
   , jump_Th( 25.0 )  // mV
   , tau_Th( 7.0 )    // ms
-  , Ca_active( true )
+  , Ca_active( false )
   , reset_on_spike( true )
 
 {
@@ -288,7 +290,7 @@ nest::iaf_cond_alpha_mc_kinetics::Parameters_::Parameters_()
   C_m[ PROX ] = 75.0;       // pF
   E_ex[ PROX ] = 0.0;       // mV
   E_in[ PROX ] = -85.0;     // mV
-  E_L[ PROX ] = -70.0;      // mV
+  E_L[ PROX ] = -65.0;      // mV
   tau_synE[ PROX ] = 0.5;   // ms
   tau_synI[ PROX ] = 2.0;   // ms
   I_e[ PROX ] = 0.0;        // pA
@@ -297,11 +299,11 @@ nest::iaf_cond_alpha_mc_kinetics::Parameters_::Parameters_()
 
   // distal parameters
   t_L[ DIST ] = 5.0;        // nS
-  nt_L[ DIST ] = 10.0;      // nS
+  nt_L[ DIST ] = 5.0;      // nS
   C_m[ DIST ] = 150.0;      // pF
   E_ex[ DIST ] = 0.0;       // mV
   E_in[ DIST ] = -85.0;     // mV
-  E_L[ DIST ] = -70.0;      // mV
+  E_L[ DIST ] = -60.0;      // mV
   tau_synE[ DIST ] = 0.5;   // ms
   tau_synI[ DIST ] = 2.0;   // ms
   I_e[ DIST ] = 0.0;        // pA
@@ -405,9 +407,9 @@ nest::iaf_cond_alpha_mc_kinetics::State_::State_( const Parameters_& p )
   for ( size_t i = 0; i < STATE_VEC_SIZE; ++i )
     y_[ i ] = 0;
 
-  y_[ idx( SOMA, V_M ) ] = -70.;
-  y_[ idx( PROX, V_M ) ] = -65.;
-  y_[ idx( DIST, V_M ) ] = -60.;
+  y_[ idx( SOMA, V_M ) ] = p.E_L[ SOMA ];
+  y_[ idx( PROX, V_M ) ] = p.E_L[ PROX ];
+  y_[ idx( DIST, V_M ) ] = p.E_L[ DIST ];
   y_[ idx( SOMA, G_L ) ] = p.nt_L[ SOMA ];
   y_[ idx( PROX, G_L ) ] = p.nt_L[ PROX ];
   y_[ idx( DIST, G_L ) ] = p.nt_L[ DIST ];
@@ -718,7 +720,7 @@ nest::iaf_cond_alpha_mc_kinetics::calibrate()
     >= 0 ); // since t_ref >= 0, this can only fail in error
 
   V_.AdaptThStep_ =
-    numerics::expm1( -Time::get_resolution().get_ms() / P_.tau_Th );
+    pow( numerics::e, ( -1.0*Time::get_resolution().get_ms() / P_.tau_Th ) ) - 1.0;
 }
 
 

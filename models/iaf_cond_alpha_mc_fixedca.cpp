@@ -219,6 +219,8 @@ nest::iaf_cond_alpha_mc_fixedca_dynamics( double,
       -y[ S::idx( n, S::DI_AP ) ] / node.P_.tau_currAP[ n ];
     f[ S::idx( n, S::I_AP ) ] = y[ S::idx( n, S::DI_AP ) ]
       - y[ S::idx( n, S::I_AP ) ] / node.P_.tau_currAP[ n ];
+
+    f[ S::idx( n, S::G_L ) ] = 0.0;
   }
 
   return GSL_SUCCESS;
@@ -264,7 +266,7 @@ nest::iaf_cond_alpha_mc_fixedca::Parameters_::Parameters_()
   C_m[ PROX ] = 75.0;       // pF
   E_ex[ PROX ] = 0.0;       // mV
   E_in[ PROX ] = -85.0;     // mV
-  E_L[ PROX ] = -70.0;      // mV
+  E_L[ PROX ] = -65.0;      // mV
   tau_synE[ PROX ] = 0.5;   // ms
   tau_synI[ PROX ] = 2.0;   // ms
   I_e[ PROX ] = 0.0;        // pA
@@ -273,11 +275,11 @@ nest::iaf_cond_alpha_mc_fixedca::Parameters_::Parameters_()
 
   // distal parameters
   t_L[ DIST ] = 5.0;        // nS
-  nt_L[ DIST ] = 10.0;      // nS
+  nt_L[ DIST ] = 5.0;      // nS
   C_m[ DIST ] = 150.0;      // pF
   E_ex[ DIST ] = 0.0;       // mV
   E_in[ DIST ] = -85.0;     // mV
-  E_L[ DIST ] = -70.0;      // mV
+  E_L[ DIST ] = -60.0;      // mV
   tau_synE[ DIST ] = 0.5;   // ms
   tau_synI[ DIST ] = 2.0;   // ms
   I_e[ DIST ] = 0.0;        // pA
@@ -371,9 +373,9 @@ nest::iaf_cond_alpha_mc_fixedca::State_::State_( const Parameters_& p )
   for ( size_t i = 0; i < STATE_VEC_SIZE; ++i )
     y_[ i ] = 0;
 
-  y_[ idx( SOMA, V_M ) ] = -70.;
-  y_[ idx( PROX, V_M ) ] = -65.;
-  y_[ idx( DIST, V_M ) ] = -60.;
+  y_[ idx( SOMA, V_M ) ] = p.E_L[ SOMA ];
+  y_[ idx( PROX, V_M ) ] = p.E_L[ PROX ];
+  y_[ idx( DIST, V_M ) ] = p.E_L[ DIST ];
   y_[ idx( SOMA, G_L ) ] = p.nt_L[ SOMA ];
   y_[ idx( PROX, G_L ) ] = p.nt_L[ PROX ];
   y_[ idx( DIST, G_L ) ] = p.nt_L[ DIST ];
@@ -1809,7 +1811,7 @@ nest::iaf_cond_alpha_mc_fixedca::calibrate()
   V_.Ca_waveform_.assign( tmp, tmp + CA_SIZE );
 
   V_.AdaptThStep_ =
-    numerics::expm1( -Time::get_resolution().get_ms() / P_.tau_Th );
+    pow( numerics::e, ( -1.0*Time::get_resolution().get_ms() / P_.tau_Th ) ) - 1.0;
 }
 
 
@@ -1860,7 +1862,6 @@ nest::iaf_cond_alpha_mc_fixedca::update( Time const& origin,
     }
 
     S_.th_ += ( S_.th_ - P_.V_th ) * ( V_.AdaptThStep_ );
-
     // add incoming spikes at end of interval
     // exploit here that spike buffers are compartment for compartment,
     // alternating between excitatory and inhibitory
